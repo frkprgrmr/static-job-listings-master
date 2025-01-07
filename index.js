@@ -1,189 +1,122 @@
 const listContainer = document.querySelector("ul");
+const filterBoxWrapper = document.querySelector(".filter");
+const filterBox = document.querySelector(".filter-value");
 
+// Fetch and display job listings
 async function getData() {
-  let response = await fetch("./data.json");
-  let data = await response.json();
+  try {
+    const response = await fetch("./data.json");
+    if (!response.ok) throw new Error("Failed to fetch data");
+    const data = await response.json();
+    renderJobs(data);
+  } catch (error) {
+    console.error("Error loading data:", error);
+  }
+}
 
-  data.forEach((element) => {
-    if (element.new && element.featured) {
-      listContainer.innerHTML += `
-      <li id="one${element.id}" class="job">
-        <div class="developer-details">
-          <img src="${element.logo}" alt="company's avatar" class="avatar"/>
-          <div class="details">
-            <div class="company-wrap">
-              <h1 class="company">${element.company}</h1>
-              <div class="new-wrap">
-                <p class="new">new!</p>
-                <p class="featured"> featured</p>
-              </div>  
-            </div>
-            <div class ="position-wrap">
-              <p class="position"> ${element.position}</p>
-            </div>
-            <div class ="contract-wrap">
-              <p class="posted-at"> ${element.postedAt}</p>
-              <p class="contract">${element.contract}</p>
-              <p class="location">. ${element.location}</p>
-            </div>
+function renderJobs(data) {
+  listContainer.innerHTML = ""; // Clear existing content
+  data.forEach((job) => {
+    const jobElement = document.createElement("li");
+    jobElement.id = `job-${job.id}`;
+    jobElement.className = "job";
+
+    const skillsHTML = [...job.languages, ...job.tools]
+      .map((skill) => `<button class="skills">${skill}</button>`)
+      .join("");
+
+    jobElement.innerHTML = `
+      <div class="developer-details">
+        <img src="${job.logo}" alt="${job.company} logo" class="avatar" />
+        <div>
+          <div class="company-wrap">
+            <h1 class="company">${job.company}</h1>
+            ${job.new ? '<span class="new">New!</span>' : ""}
+            ${job.featured ? '<span class="featured">Featured</span>' : ""}
           </div>
-        </div> 
-        <div class="developer-skills">
-          <button class="role"> ${element.role}</button>
-          <button class="level"> ${element.level}</button>
-        </div>
-      </li>`;
-      listSkills(element);
-    } else if (element.new && !element.featured) {
-      listContainer.innerHTML += `
-      <li id="${element.id}" class="job">
-        <div class="developer-details">
-          <img src="${element.logo}" alt="company's avatar" class="avatar"/>
-          <div class="details">
-            <div class="company-wrap">
-              <h1 class="company">${element.company}</h1>
-              <div class="new-wrap">
-                <p class="new">new!</p>
-              </div>
-            </div>
-            <div class ="position-wrap">
-              <p class="position"> ${element.position}</p>
-            </div>
-            <div class="contract-wrap">
-              <p class="posted-at"> ${element.postedAt}</p>
-              <p class="contract">${element.contract}</p>
-              <p class="location">${element.location}</p>
-            </div>
+          <div class="position-wrap">
+            <h2 class="position">${job.position}</h2>
+          </div>
+          <div class="contract-wrap">
+            <span>${job.postedAt}</span>
+            <span class="contract">${job.contract}</span>
+            <span>${job.location}</span>
           </div>
         </div>
-        <div class="developer-skills">
-          <button class="role"> ${element.role}</button>
-          <button class="level"> ${element.level}</button>
-        </div>
-      </li>`;
-      listSkills(element);
-    } else {
-      listContainer.innerHTML += `
-      <li id="${element.id}" class="job">
-        <div class="developer-details">
-          <img src="${element.logo}" alt="company's avatar" class="avatar"/>
-          <div class="details">
-            <div class="company-wrap">  
-              <h1 class="company">${element.company}</h1>    
-            </div>
-            <div class="position-wrap">
-              <p class="position"> ${element.position}</p>
-            </div>
-            <div class="contract-wrap">
-              <p class="posted-at"> ${element.postedAt}</p>
-              <p class="contract"> ${element.contract}</p>
-              <p class="location"> ${element.location}</p>
-            </div>
-          </div>
-        </div>
-        <div class="developer-skills">
-          <button class="role"> ${element.role}</button>
-          <button class="level"> ${element.level}</button>
-        </div>
-      </li>`;
-      listSkills(element);
-    }
+      </div>
+      <div class="developer-skills">${skillsHTML}</div>
+    `;
+    listContainer.appendChild(jobElement);
   });
 }
 
-function listSkills(element) {
-  const lis = document.querySelectorAll(".developer-skills");
-  let skill, tool;
-  for (let i = 0; i < element.languages.length; i++) {
-    skill = document.createElement("button");
-    skill.className = "skills";
-    skill.textContent = element.languages[i];
+// Add clicked skill to filter box
+function pasteClickedSkill(event) {
+  if (!event.target.matches(".skills")) return;
 
-    lis.forEach((element) => {
-      element.appendChild(skill);
-    });
-  }
-  for (let i = 0; i < element.tools.length; i++) {
-    tool = document.createElement("button");
-    tool.className = "tools";
-    tool.textContent = element.tools[i];
+  const skillValue = event.target.textContent;
+  if (
+    Array.from(filterBox.children).some((el) => el.textContent === skillValue)
+  )
+    return;
 
-    lis.forEach((element) => {
-      element.appendChild(tool);
-    });
-  }
-}
+  const filterItem = document.createElement("li");
+  filterItem.innerHTML = `
+    <span class="search">${skillValue}</span>
+    <img src="./images/icon-remove.svg" alt="Remove" class="remove" />
+  `;
+  filterBox.appendChild(filterItem);
+  filterBoxWrapper.style.display = "flex";
 
-//call the function to get the webpage running
-getData();
-
-const filterBoxwrapper = document.querySelector(".filter");
-const filterBox = document.querySelector(".filter-value");
-
-let list;
-
-function pasteClickedSkill(e) {
-  list = document.createElement("li");
-  let closeSearchSkill = document.createElement("img");
-  let searchSkill = document.createElement("p");
-
-  let skill = e.target;
-  let skillValue = e.target.textContent;
-
-  if (skill.matches("button")) {
-    searchSkill.textContent = skillValue;
-    searchSkill.setAttribute("class", "search");
-    closeSearchSkill.src = "./images/icon-remove.svg";
-    list.appendChild(searchSkill);
-    list.appendChild(closeSearchSkill);
-
-    filterBox.appendChild(list);
-    filterBoxwrapper.style.display = "flex";
-  }
   filterJobList();
 }
 
-listContainer.addEventListener("click", pasteClickedSkill);
+// Filter job listings
+function filterJobList() {
+  const filters = Array.from(filterBox.querySelectorAll(".search")).map(
+    (el) => el.textContent
+  );
 
-const filterJobList = () => {
-  let search = document.querySelectorAll(".search");
+  Array.from(listContainer.children).forEach((job) => {
+    const jobSkills = Array.from(job.querySelectorAll(".skills")).map(
+      (el) => el.textContent
+    );
+    const matches = filters.every((filter) => jobSkills.includes(filter));
 
-  search.forEach((element) => {
-    Array.from(listContainer.children)
-
-      .filter((bb) => !bb.textContent.includes(element.textContent))
-      .forEach((bb) => bb.classList.add("filtered"));
+    job.classList.toggle("filtered", !matches);
   });
-};
+}
 
-function removeSearchedSkill(e) {
-  try {
-    let searchSkill = e.target.parentElement;
-    if (e.target.matches("img")) {
-      searchSkill.remove();
+// Remove a skill filter
+function removeSearchedSkill(event) {
+  if (!event.target.matches(".remove")) return;
 
-      let search = document.querySelectorAll(".search");
+  const filterItem = event.target.closest("li");
+  filterItem.remove();
 
-      search.forEach((element) => {
-        console.log(element.textContent);
-        Array.from(listContainer.children)
-          .filter((joblist) =>
-            joblist.textContent.includes(element.textContent)
-          )
-          .forEach((joblist) => joblist.classList.remove("filtered"));
-      });
-    } else if (e.target.matches("p")) {
-      list.remove();
-    }
-    if (!filterBox.hasChildNodes()) {
-      filterBoxwrapper.style.display = "none";
-      Array.from(listContainer.children).forEach((joblist) =>
-        joblist.classList.remove("filtered")
-      );
-    }
-  } catch (error) {
-    console.log("error");
+  if (!filterBox.hasChildNodes()) {
+    filterBoxWrapper.style.display = "none";
+    Array.from(listContainer.children).forEach((job) =>
+      job.classList.remove("filtered")
+    );
+  } else {
+    filterJobList();
   }
 }
 
-filterBoxwrapper.addEventListener("click", removeSearchedSkill);
+// Clear all filters
+function clearFilters() {
+  filterBox.innerHTML = "";
+  filterBoxWrapper.style.display = "none";
+  Array.from(listContainer.children).forEach((job) =>
+    job.classList.remove("filtered")
+  );
+}
+
+// Event Listeners
+listContainer.addEventListener("click", pasteClickedSkill);
+filterBoxWrapper.addEventListener("click", removeSearchedSkill);
+document.querySelector(".clear").addEventListener("click", clearFilters);
+
+// Initial Load
+getData();
